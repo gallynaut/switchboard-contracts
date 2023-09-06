@@ -8,6 +8,36 @@ import {ISwitchboard} from "../../src/ISwitchboard.sol";
  * @notice TBD
  */
 contract MockSwitchboardFunctionV1 {
+    //=========================================================================
+    // Events
+    //=========================================================================
+
+    // [Function Calls]
+    event FunctionCallFund(address indexed functionId, address indexed funder, uint256 indexed amount);
+    event FunctionCallEvent(address indexed functionId, address indexed sender, address indexed callId, bytes params);
+
+    // [Functions]
+    event FunctionFund(address indexed functionId, address indexed funder, uint256 indexed amount);
+    event FunctionWithdraw(address indexed functionId, address indexed withdrawer, uint256 indexed amount);
+    event FunctionAccountInit(address indexed authority, address indexed accountId);
+
+    // [Attestation Queues]
+    event AttestationQueueAccountInit(address indexed authority, address indexed accountId);
+    event AddMrEnclave(address indexed queueId, bytes32 mrEnclave);
+    event RemoveMrEnclave(address indexed queueId, bytes32 mrEnclave);
+    event AttestationQueueSetConfig(address indexed queueId, address indexed authority);
+    event AttestationQueuePermissionUpdated(
+        address indexed queueId, address indexed granter, address indexed grantee, uint256 permission
+    );
+
+    // [Enclaves]
+    event EnclaveAccountInit(address indexed signer, address indexed accountId);
+    event EnclaveHeartbeat(address indexed enclaveId, address indexed signer);
+    event EnclaveGC(address indexed enclaveId, address indexed queue);
+    event EnclavePayoutEvent(address indexed nodeId, address indexed enclaveId, uint256 indexed amount);
+    event EnclaveVerifyRequest(address indexed queueId, address indexed verifier, address indexed verifiee);
+    event EnclaveRotateSigner(address indexed queueId, address indexed oldSigner, address indexed newSigner);
+
     address public mockFunctionId;
     address public functionAuthority;
     address public functionQueueId;
@@ -129,6 +159,19 @@ contract MockSwitchboardFunctionV1 {
         });
     }
 
+    function functionEscrowFund(address functionId) external payable {
+        if (functionId != mockFunctionId) {
+            revert ISwitchboard.FunctionDoesNotExist(functionId);
+        }
+
+        if (functionStatus == ISwitchboard.FunctionStatus.OUT_OF_FUNDS) {
+            functionStatus = ISwitchboard.FunctionStatus.NONE;
+        }
+
+        functionBalance += msg.value;
+        emit FunctionFund(functionId, msg.sender, msg.value);
+    }
+
     function callFunction(address functionId, bytes memory params) external payable returns (address callId) {
         // address msgSender = getMsgSender();
 
@@ -142,9 +185,12 @@ contract MockSwitchboardFunctionV1 {
         callId = generateId();
 
         functionCallId = callId;
-        // Emit FunctionCallEvent
-        functionBalance += msg.value;
-        // emit FunctionCallFund
+        emit FunctionCallEvent(functionId, msg.sender, callId, params);
+
+        if (msg.value > 0) {
+            functionBalance += msg.value;
+            emit FunctionCallFund(functionId, msg.sender, msg.value);
+        }
     }
 
     function generateId() internal returns (address) {
