@@ -1,66 +1,36 @@
-## Foundry
+# Switchboard Contracts
 
-**Foundry is a blazing fast, portable and modular toolkit for Ethereum application development written in Rust.**
+Switchboard EVM contracts for use with Foundry.
 
-Foundry consists of:
+<https://book.getfoundry.sh/>
 
--   **Forge**: Ethereum testing framework (like Truffle, Hardhat and DappTools).
--   **Cast**: Swiss army knife for interacting with EVM smart contracts, sending transactions and getting chain data.
--   **Anvil**: Local Ethereum node, akin to Ganache, Hardhat Network.
--   **Chisel**: Fast, utilitarian, and verbose solidity REPL.
+## Install
 
-## Documentation
+Add the gitsubmodule to your foundry project
 
-https://book.getfoundry.sh/
+```bash
+forge install --no-commit switchboard-xyz/switchboard-contracts
+```
+
+Then add the following to your `remappings.txt`
+
+```txt
+switchboard-contracts/=lib/switchboard-contracts/
+switchboard/=lib/switchboard-contracts/src/
+```
+
+**NOTE**: Run `forge remappings > remappings.txt` to generate this file.
 
 ## Usage
 
-### Build
+You can import the Switchboard contracts into your Solidity files like so:
 
-```shell
-$ forge build
-```
+```solidity
+// SPDX-License-Identifier: UNLICENSED
+pragma solidity ^0.8.19;
 
-### Test
+import {ISwitchboard} from "switchboard/ISwitchboard.sol";
+import {SwitchboardHelperConfig} from "switchboard-contracts/script/HelperConfig.s.sol";
 
-```shell
-$ forge test
-```
-
-### Format
-
-```shell
-$ forge fmt
-```
-
-### Gas Snapshots
-
-```shell
-$ forge snapshot
-```
-
-### Anvil
-
-```shell
-$ anvil
-```
-
-### Deploy
-
-```shell
-$ forge script script/Counter.s.sol:CounterScript --rpc-url <your_rpc_url> --private-key <your_private_key>
-```
-
-### Cast
-
-```shell
-$ cast <subcommand>
-```
-
-### Help
-
-```shell
-$ forge --help
-$ anvil --help
-$ cast --help
+contract MyContract {}
 ```
