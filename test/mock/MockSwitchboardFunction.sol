@@ -19,19 +19,49 @@ contract MockSwitchboardFunctionV1 {
     ISwitchboard.FunctionConfig public functionConfig;
     ISwitchboard.FunctionState public functionState;
 
+    address public mockAttestationQueueId;
+    address public mockAttestationQueueAuthority;
+    address[] public mockAttestationQueueData = new address[](32);
+    uint256 public mockAttestationQueueMaxSize = 32;
+    uint256 public mockAttestationQueueReward = 10 gwei;
+    uint256 public mockAttestationQueueLastHeartbeat;
+    bytes32[] public mockAttestationQueueMrEnclaves = new bytes32[](32);
+    uint256 public mockAttestationQueueMaxEnclaveVerificationAge = 7 days;
+    uint256 public mockAttestationQueueAllowAuthorityOverrideAfter = 7 days;
+    uint256 public mockAttestationQueueMaxConsecutiveFunctionFailures = 10000;
+    bool public mockAttestationQueueRequireAuthorityHeartbeatPermission = false;
+    bool public mockAttestationQueueRequireUsagePermissions = false;
+    uint256 public mockAttestationQueueEnclaveTimeout = 7 days;
+    uint256 public mockAttestationQueueGcIdx = 0;
+    uint256 public currIdx = 0;
+
     address private functionCallId; // should this be an array?
 
     uint256 public nonce = 0;
 
     error MissingFunctionId(address);
 
+    struct MockSwitchboardConfig {
+        address attestationQueueId;
+        address queueAuthority;
+        uint256 reward;
+        address functionId;
+        address functionAuthority;
+        address[] permittedCallers;
+    }
+
     // TODO: requireEstimatedRunCostFee
     // TODO: minimumFee
-    constructor(address functionId, address authority, address queueId, address[] memory permittedCallers) {
-        mockFunctionId = functionId;
-        functionAuthority = authority;
-        functionQueueId = queueId;
-        functionPermittedCallers = permittedCallers;
+    constructor(MockSwitchboardConfig memory config) {
+        mockAttestationQueueId = config.attestationQueueId;
+        mockAttestationQueueAuthority = config.queueAuthority;
+        mockAttestationQueueReward = config.reward;
+        mockAttestationQueueLastHeartbeat = block.timestamp;
+
+        mockFunctionId = config.functionId;
+        functionAuthority = config.functionAuthority;
+        functionQueueId = config.attestationQueueId;
+        functionPermittedCallers = config.permittedCallers;
         functionEnclaveId = generateId();
 
         functionConfig = ISwitchboard.FunctionConfig({
@@ -73,6 +103,29 @@ contract MockSwitchboardFunctionV1 {
             status: functionStatus,
             config: functionConfig,
             state: functionState
+        });
+    }
+
+    function attestationQueues(address attestationQueueId) public view returns (ISwitchboard.AttestationQueue memory) {
+        if (attestationQueueId != mockAttestationQueueId) {
+            revert ISwitchboard.AttestationQueueDoesNotExist(attestationQueueId);
+        }
+
+        return ISwitchboard.AttestationQueue({
+            authority: mockAttestationQueueAuthority,
+            data: mockAttestationQueueData,
+            maxSize: mockAttestationQueueMaxSize,
+            reward: mockAttestationQueueReward,
+            lastHeartbeat: mockAttestationQueueLastHeartbeat,
+            mrEnclaves: mockAttestationQueueMrEnclaves,
+            maxEnclaveVerificationAge: mockAttestationQueueMaxEnclaveVerificationAge,
+            allowAuthorityOverrideAfter: mockAttestationQueueAllowAuthorityOverrideAfter,
+            maxConsecutiveFunctionFailures: mockAttestationQueueMaxConsecutiveFunctionFailures,
+            requireAuthorityHeartbeatPermission: mockAttestationQueueRequireAuthorityHeartbeatPermission,
+            requireUsagePermissions: mockAttestationQueueRequireUsagePermissions,
+            enclaveTimeout: mockAttestationQueueEnclaveTimeout,
+            gcIdx: mockAttestationQueueGcIdx,
+            currIdx: currIdx
         });
     }
 
