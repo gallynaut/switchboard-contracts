@@ -4,7 +4,7 @@ pragma solidity ^0.8.9;
 /// @title SwitchboardCallbackHandler
 /// @author
 /// @notice This contract provides modifiers which can optionally be overridden to allow Switchboard Function consumers to validate whether a instruction was invoked from the Switchboard program and corresponds to an expected functionId.
-abstract contract SwitchboardCallbackHandler {
+contract SwitchboardCallbackHandler {
     error SwitchboardCallbackHandler__MissingFunctionId();
     error SwitchboardCallbackHandler__InvalidSender(address expected, address received);
     error SwitchboardCallbackHandler__InvalidFunction(address expected, address received);
