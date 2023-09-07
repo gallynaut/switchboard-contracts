@@ -12,7 +12,7 @@ abstract contract SwitchboardCallbackHandler {
     /**
      * @param expectedSbAddress The address of the Switchboard contract that owns the Switchboard Function
      */
-    modifier isSwitchboardCaller(address expectedSbAddress) {
+    modifier isSwitchboardCaller(address expectedSbAddress) virtual {
         address payable receivedCaller = payable(msg.sender);
         if (receivedCaller != expectedSbAddress) {
             revert SwitchboardCallbackHandler__InvalidSender(expectedSbAddress, receivedCaller);
@@ -23,7 +23,7 @@ abstract contract SwitchboardCallbackHandler {
     /**
      * @param expectedFunctionId The functionId of the expected Switchboard Function
      */
-    modifier isFunctionId(address expectedFunctionId) {
+    modifier isFunctionId(address expectedFunctionId) virtual {
         if (msg.data.length < 20) {
             revert SwitchboardCallbackHandler__MissingFunctionId();
         }
