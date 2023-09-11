@@ -79,22 +79,31 @@ contract MockSwitchboardFunctionV1 {
 
     function createFunctionWithId(
         address functionId,
+        string memory name,
         address authority,
-        uint256 startingBalance,
-        bytes32[] memory mrEnclaves,
+        address queueId,
+        string memory containerRegistry,
+        string memory container,
+        string memory version,
+        string memory schedule,
+        string memory paramsSchema,
         address[] memory permittedCallers
     ) public payable {
+        if (queueId != mockAttestationQueueId) {
+            revert ISwitchboard.AttestationQueueDoesNotExist(queueId);
+        }
+
         address functionEnclaveId = generateId();
 
         // setFunctionConfig
         ISwitchboard.FunctionConfig memory functionConfig = ISwitchboard.FunctionConfig({
-            schedule: "",
+            schedule: schedule,
             permittedCallers: permittedCallers,
-            containerRegistry: "dockerhub",
-            container: "",
-            version: "latest",
-            paramsSchema: "",
-            mrEnclaves: mrEnclaves,
+            containerRegistry: containerRegistry,
+            container: container,
+            version: version,
+            paramsSchema: paramsSchema,
+            mrEnclaves: new bytes32[](0),
             allowAllFnCalls: false,
             useFnCallEscrow: false
         });
@@ -113,11 +122,11 @@ contract MockSwitchboardFunctionV1 {
         });
 
         _funcs[functionId] = ISwitchboard.SbFunction({
-            name: "",
+            name: name,
             authority: authority,
             enclaveId: functionEnclaveId,
             queueId: mockAttestationQueueId,
-            balance: startingBalance,
+            balance: 0,
             status: ISwitchboard.FunctionStatus.NONE,
             config: functionConfig,
             state: functionState
