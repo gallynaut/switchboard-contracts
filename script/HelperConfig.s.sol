@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.19;
+pragma solidity ^0.8.9;
 
 import "forge-std/Script.sol";
 import {MockSwitchboardFunctionV1} from "../test/mock/MockSwitchboardFunction.sol";
@@ -127,13 +127,12 @@ contract SwitchboardHelperConfig is Script {
             MockSwitchboardFunctionV1.MockSwitchboardConfig({
                 attestationQueueId: myQueueId,
                 queueAuthority: msg.sender,
-                reward: 10 gwei,
-                functionId: myFunctionId,
-                functionAuthority: msg.sender,
-                permittedCallers: new address[](0)
+                reward: 10 gwei
             })
-
         );
+
+        mockSwitchboard.createFunctionWithId(myFunctionId, msg.sender, 0, new bytes32[](0), new address[](0));
+
         emit HelperConfig__CreatedMockSwitchboardFunction(address(mockSwitchboard));
         vm.stopBroadcast();
 

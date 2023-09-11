@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.9;
 
 import {ISwitchboard} from "../../src/ISwitchboard.sol";
 
@@ -38,17 +38,6 @@ contract MockSwitchboardFunctionV1 {
     event EnclaveVerifyRequest(address indexed queueId, address indexed verifier, address indexed verifiee);
     event EnclaveRotateSigner(address indexed queueId, address indexed oldSigner, address indexed newSigner);
 
-    address public mockFunctionId;
-    address public functionAuthority;
-    address public functionQueueId;
-    address public functionEnclaveId;
-    address[] public functionPermittedCallers;
-    uint256 public functionBalance = 0;
-    bytes32[] public functionMrEnclaves;
-    ISwitchboard.FunctionStatus public functionStatus = ISwitchboard.FunctionStatus.NONE;
-    ISwitchboard.FunctionConfig public functionConfig;
-    ISwitchboard.FunctionState public functionState;
-
     address public mockAttestationQueueId;
     address public mockAttestationQueueAuthority;
     address[] public mockAttestationQueueData = new address[](32);
@@ -69,15 +58,14 @@ contract MockSwitchboardFunctionV1 {
 
     uint256 public nonce = 0;
 
+    mapping(address => ISwitchboard.SbFunction) _funcs;
+
     error MissingFunctionId(address);
 
     struct MockSwitchboardConfig {
         address attestationQueueId;
         address queueAuthority;
         uint256 reward;
-        address functionId;
-        address functionAuthority;
-        address[] permittedCallers;
     }
 
     // TODO: requireEstimatedRunCostFee
@@ -87,26 +75,32 @@ contract MockSwitchboardFunctionV1 {
         mockAttestationQueueAuthority = config.queueAuthority;
         mockAttestationQueueReward = config.reward;
         mockAttestationQueueLastHeartbeat = block.timestamp;
+    }
 
-        mockFunctionId = config.functionId;
-        functionAuthority = config.functionAuthority;
-        functionQueueId = config.attestationQueueId;
-        functionPermittedCallers = config.permittedCallers;
-        functionEnclaveId = generateId();
+    function createFunctionWithId(
+        address functionId,
+        address authority,
+        uint256 startingBalance,
+        bytes32[] memory mrEnclaves,
+        address[] memory permittedCallers
+    ) public payable {
+        address functionEnclaveId = generateId();
 
-        functionConfig = ISwitchboard.FunctionConfig({
+        // setFunctionConfig
+        ISwitchboard.FunctionConfig memory functionConfig = ISwitchboard.FunctionConfig({
             schedule: "",
-            permittedCallers: functionPermittedCallers,
+            permittedCallers: permittedCallers,
             containerRegistry: "dockerhub",
             container: "",
             version: "latest",
             paramsSchema: "",
-            mrEnclaves: functionMrEnclaves,
+            mrEnclaves: mrEnclaves,
             allowAllFnCalls: false,
             useFnCallEscrow: false
         });
 
-        functionState = ISwitchboard.FunctionState({
+        // setFunctionState
+        ISwitchboard.FunctionState memory functionState = ISwitchboard.FunctionState({
             consecutiveFailures: 0,
             lastExecutionTimestamp: 0,
             nextAllowedTimestamp: block.timestamp,
@@ -117,22 +111,42 @@ contract MockSwitchboardFunctionV1 {
             triggered: false,
             createdAt: block.timestamp
         });
+
+        _funcs[functionId] = ISwitchboard.SbFunction({
+            name: "",
+            authority: authority,
+            enclaveId: functionEnclaveId,
+            queueId: mockAttestationQueueId,
+            balance: startingBalance,
+            status: ISwitchboard.FunctionStatus.NONE,
+            config: functionConfig,
+            state: functionState
+        });
+    }
+
+    function funcExists(address functionId) internal view returns (bool) {
+        ISwitchboard.SbFunction memory f = _funcs[functionId];
+        if (f.authority == address(0)) {
+            return false;
+        }
+        return true;
     }
 
     function funcs(address functionId) public view returns (ISwitchboard.SbFunction memory) {
-        if (mockFunctionId != functionId) {
+        if (!funcExists(functionId)) {
             revert ISwitchboard.FunctionDoesNotExist(functionId);
         }
+        ISwitchboard.SbFunction memory f = _funcs[functionId];
 
         return ISwitchboard.SbFunction({
-            name: "",
-            authority: functionAuthority,
-            enclaveId: functionEnclaveId,
-            queueId: functionQueueId,
-            balance: functionBalance,
-            status: functionStatus,
-            config: functionConfig,
-            state: functionState
+            name: f.name,
+            authority: f.authority,
+            enclaveId: f.enclaveId,
+            queueId: f.queueId,
+            balance: f.balance,
+            status: f.status,
+            config: f.config,
+            state: f.state
         });
     }
 
@@ -160,24 +174,28 @@ contract MockSwitchboardFunctionV1 {
     }
 
     function functionEscrowFund(address functionId) external payable {
-        if (functionId != mockFunctionId) {
+        if (!funcExists(functionId)) {
             revert ISwitchboard.FunctionDoesNotExist(functionId);
         }
 
-        if (functionStatus == ISwitchboard.FunctionStatus.OUT_OF_FUNDS) {
-            functionStatus = ISwitchboard.FunctionStatus.NONE;
+        ISwitchboard.SbFunction storage f = _funcs[functionId];
+
+        if (f.status == ISwitchboard.FunctionStatus.OUT_OF_FUNDS) {
+            f.status = ISwitchboard.FunctionStatus.NONE;
         }
 
-        functionBalance += msg.value;
+        f.balance += msg.value;
         emit FunctionFund(functionId, msg.sender, msg.value);
     }
 
     function callFunction(address functionId, bytes memory params) external payable returns (address callId) {
         // address msgSender = getMsgSender();
 
-        if (functionId != mockFunctionId) {
+        if (!funcExists(functionId)) {
             revert ISwitchboard.FunctionDoesNotExist(functionId);
         }
+
+        ISwitchboard.SbFunction storage f = _funcs[functionId];
 
         // TODO: check estimateRunFee
         // Check permittedCallers
@@ -188,7 +206,7 @@ contract MockSwitchboardFunctionV1 {
         emit FunctionCallEvent(functionId, msg.sender, callId, params);
 
         if (msg.value > 0) {
-            functionBalance += msg.value;
+            f.balance += msg.value;
             emit FunctionCallFund(functionId, msg.sender, msg.value);
         }
     }
