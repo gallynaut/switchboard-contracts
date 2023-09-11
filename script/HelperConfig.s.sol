@@ -4,8 +4,6 @@ pragma solidity ^0.8.19;
 import "forge-std/Script.sol";
 import {MockSwitchboardFunctionV1} from "../test/mock/MockSwitchboardFunction.sol";
 
-interface ISwitchboardConfig {}
-
 contract SwitchboardHelperConfig is Script {
     NetworkConfig public activeNetworkConfig;
     uint256 chainid;
