@@ -118,9 +118,6 @@ contract SwitchboardHelperConfig is Script {
         }
 
         address myQueueId = makeAddr("mySbAttestationQueue");
-        // TODO: fix this, should be passed as a param
-        // The mock contract needs way more functionality to be useful
-        address myFunctionId = makeAddr("mySbFunction");
 
         vm.startBroadcast();
         MockSwitchboardFunctionV1 mockSwitchboard = new MockSwitchboardFunctionV1(
@@ -130,8 +127,6 @@ contract SwitchboardHelperConfig is Script {
                 reward: 10 gwei
             })
         );
-
-        mockSwitchboard.createFunctionWithId(myFunctionId, msg.sender, 0, new bytes32[](0), new address[](0));
 
         emit HelperConfig__CreatedMockSwitchboardFunction(address(mockSwitchboard));
         vm.stopBroadcast();
